@@ -630,7 +630,7 @@
         <div id="tab-3d" class="tab-content">
             <div class="view-box">
                 <h2 class="section-title">Modelo 3D Interactivo</h2>
-                <p class="hint">Arrastra para rotar | <span>Pasa el mouse sobre las tapas para abrirlas</span></p>
+                <p class="hint">Arrastra para rotar | <span>Haz click en las tapas para abrirlas/cerrarlas</span></p>
                 
                 <div class="scene-3d" id="scene">
                     <div class="rotation-info" id="rotationInfo">X: -15 | Y: -25</div>
@@ -889,11 +889,16 @@
                 left: 0;
             `;
             
-            // TAPA (D) - inclinada, bisagra en borde C/B, abre hacia atras
+            // TAPA (D) - bisagra donde termina C, cierra inclinada hasta E
             const tapaLength = 16.5 * scale;
-            const deltaH = hBack - hFront;  // diferencia de altura
-            const deltaD = depth - topH;     // distancia horizontal de la tapa
-            const tapaAngle = Math.atan(deltaH / deltaD) * (180 / Math.PI);
+            const deltaH = hBack - hFront;  // diferencia de altura (27-16 = 11cm)
+            const deltaD = depth - topH;     // distancia horizontal (28-16 = 12cm)
+            // Angulo exacto para que la tapa llegue de C a E
+            const tapaAngle = Math.atan(deltaH / deltaD) * (180 / Math.PI); // ~42.5 grados
+            
+            // Cerrada: la tapa baja desde C hacia E
+            // Necesita rotar desde horizontal (0) hacia abajo (+angulo)
+            const closedRotation = 90 - tapaAngle; // complemento para que baje correctamente
             
             const tapa = document.createElement('div');
             tapa.style.cssText = `
@@ -905,7 +910,7 @@
                 transform-origin: top center;
                 top: 0;
                 left: 0;
-                transform: rotateX(-90deg) translateY(${-topH}px) rotateX(${-tapaAngle}deg);
+                transform: translateZ(${topH}px) rotateX(${closedRotation}deg);
                 cursor: pointer;
                 transition: transform 0.5s ease;
             `;
@@ -925,15 +930,24 @@
             `;
             tapa.appendChild(tapaLabel);
             
-            // Animacion: cerrada hacia E (frente), abierta hacia C (atras)
-            const closedTransform = `rotateX(-90deg) translateY(${-topH}px) rotateX(${-tapaAngle}deg)`;
-            const openTransform = `rotateX(-90deg) translateY(${-topH}px) rotateX(${70}deg)`;
+            // Cerrada: inclinada desde C hasta E
+            // Abierta: levantada hacia atras (rotacion negativa)
+            const closedTransform = `translateZ(${topH}px) rotateX(${closedRotation}deg)`;
+            const openTransform = `translateZ(${topH}px) rotateX(${-60}deg)`;
             
-            tapa.addEventListener('mouseenter', function() {
-                this.style.transform = openTransform;
-            });
-            tapa.addEventListener('mouseleave', function() {
-                this.style.transform = closedTransform;
+            // Estado de la tapa - inicia cerrada
+            tapa.dataset.open = 'false';
+            
+            // Click para abrir/cerrar
+            tapa.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (this.dataset.open === 'false') {
+                    this.style.transform = openTransform;
+                    this.dataset.open = 'true';
+                } else {
+                    this.style.transform = closedTransform;
+                    this.dataset.open = 'false';
+                }
             });
             
             // Ensamblar cubiculo
